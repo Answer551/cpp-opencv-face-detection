@@ -14,17 +14,24 @@ add_executable(face_identity_tool src/main.cpp)
 target_include_directories(face_identity_tool PRIVATE "${CMAKE_SOURCE_DIR}/third_party")
 target_link_libraries(face_identity_tool PRIVATE ${OpenCV_LIBS})
 
+# SFace version: YuNet landmarks -> aligned crop -> feature gallery -> cosine match.
+add_executable(face_identity_sface src/sface_identity.cpp)
+target_include_directories(face_identity_sface PRIVATE "${CMAKE_SOURCE_DIR}/third_party")
+target_link_libraries(face_identity_sface PRIVATE ${OpenCV_LIBS})
+
 if(WIN32)
-    set(OPENCV_RUNTIME_DIR "${OpenCV_DIR}/bin" CACHE PATH
+    set(OPENCV_RUNTIME_DIR "${OpenCV_DIR}/x64/mingw/bin" CACHE PATH
         "Directory containing OpenCV runtime DLLs")
     file(GLOB OPENCV_RUNTIME_DLLS "${OPENCV_RUNTIME_DIR}/libopencv_*.dll")
     if(NOT OPENCV_RUNTIME_DLLS)
         message(FATAL_ERROR
             "No OpenCV DLLs found. Set OPENCV_RUNTIME_DIR to the OpenCV bin directory.")
     endif()
-    foreach(runtime_dll IN LISTS OPENCV_RUNTIME_DLLS)
-        add_custom_command(TARGET face_identity_tool POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${runtime_dll}" "$<TARGET_FILE_DIR:face_identity_tool>")
+    foreach(target IN ITEMS face_identity_tool face_identity_sface)
+        foreach(runtime_dll IN LISTS OPENCV_RUNTIME_DLLS)
+            add_custom_command(TARGET ${target} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${runtime_dll}" "$<TARGET_FILE_DIR:${target}>")
+        endforeach()
     endforeach()
 endif()
